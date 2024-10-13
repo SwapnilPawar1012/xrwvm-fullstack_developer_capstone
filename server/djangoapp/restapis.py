@@ -37,11 +37,26 @@ def analyze_review_sentiments(text):
         print(f"Unexpected {err=}, {type(err)=}")
         print("Network exception occurred")
 
+# def post_review(data_dict):
+#     request_url = backend_url+"/insert_review"
+#     try:
+#         response = requests.post(request_url,json=data_dict)
+#         print(response.json())
+#         return response.json()
+#     except:
+#         print("Network exception occurred")
+import requests
+
 def post_review(data_dict):
-    request_url = backend_url+"/insert_review"
+    request_url = backend_url + "/insert_review"  # Ensure backend_url is defined properly
     try:
-        response = requests.post(request_url,json=data_dict)
-        print(response.json())
+        response = requests.post(request_url, json=data_dict)
+        
+        # Raise an exception for HTTP errors (4xx and 5xx)
+        response.raise_for_status()
+        
+        # Return the JSON response if the request was successful
         return response.json()
-    except:
-        print("Network exception occurred")
+    except requests.exceptions.RequestException as e:
+        print(f"Network exception occurred: {e}")
+        return None  # Return None or handle it based on your application's needs

@@ -108,25 +108,55 @@ def get_dealer_details(request, dealer_id):
         return JsonResponse({"status":400,"message":"Bad Request"})
 
 # Create a `add_review` view to submit a review
+# def add_review(request):
+#     if(request.user.is_anonymous == False):
+#         data = json.loads(request.body)
+#         try:
+#             response = post_review(data)
+#             return JsonResponse({"status":200})
+#         except:
+#             return JsonResponse({"status":401,"message":"Error in posting review"})
+#     else:
+#         return JsonResponse({"status":403,"message":"Unauthorized"})
+@csrf_exempt
 def add_review(request):
-    if(request.user.is_anonymous == False):
-        data = json.loads(request.body)
-        try:
-            response = post_review(data)
-            return JsonResponse({"status":200})
-        except:
-            return JsonResponse({"status":401,"message":"Error in posting review"})
+    if request.method == 'POST':
+        if request.user.is_authenticated:  # Check if the user is authenticated
+            try:
+                data = json.loads(request.body)
+                
+                # Validate data here (e.g., check required fields)
+                if not all(key in data for key in ("name", "dealership", "review", "car_make", "car_model", "car_year", "purchase_date")):
+                    return JsonResponse({"status": 400, "message": "Missing required fields."})
+                
+                # Handle the review submission logic
+                response = post_review(data)  # Ensure post_review is defined elsewhere
+                
+                return JsonResponse({"status": 200, "message": "Review posted successfully."})
+            except json.JSONDecodeError:
+                return JsonResponse({"status": 400, "message": "Invalid JSON data."})
+            except Exception as e:
+                return JsonResponse({"status": 500, "message": f"Error in posting review: {str(e)}"})
+        else:
+            return JsonResponse({"status": 403, "message": "Unauthorized"})
     else:
-        return JsonResponse({"status":403,"message":"Unauthorized"})
+        return JsonResponse({"status": 405, "message": "Method not allowed"})
 
 def get_cars(request):
-    count = CarMake.objects.filter().count()
-    print(count)
-    if(count == 0):
-        initiate()
-    car_models = CarModel.objects.select_related('car_make')
-    cars = []
-    for car_model in car_models:
-        cars.append({"CarModel": car_model.name, "CarMake": car_model.car_make.name})
-    return JsonResponse({"CarModels":cars})
+    try:
+        count = CarMake.objects.count()
+        print(f"Count of CarMake: {count}")
 
+        if count == 0:
+            print("get cars initiate")
+            initiate()  
+
+        car_models = CarModel.objects.select_related('car_make')
+        cars = [{"CarModel": car_model.name, "CarMake": car_model.car_make.name} for car_model in car_models]
+        print("get cars: ", cars)
+
+        return JsonResponse({"CarModels": cars})
+
+    except Exception as e:
+        print(f"Error fetching car models: {e}")  # Log the error for debugging
+        return JsonResponse({"error": "An error occurred while fetching car models."}, status=500)
